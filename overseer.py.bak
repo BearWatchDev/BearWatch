@@ -1,0 +1,169 @@
+import sys
+import subprocess
+import time
+import itertools
+import select  # Import the select module for timeout-based input
+from modules.forager import get_mount_points, prompt_user_for_directories
+from modules.sentinel import scan_directory, display_risky_items, summarize_risks
+from modules.trailmap import generate_report  # Import TrailMap report generator
+from modules.horizon import detect_os  # Import Horizon for OS detection
+
+# Application Info
+APP_NAME = "BearWatch"
+VERSION = "1.0.0"
+RELEASE_DATE = "20th October 2024"
+
+def print_app_info():
+    print(f"{APP_NAME} - Version: {VERSION}")
+    time.sleep(0.5)
+    print(f"Release Date: {RELEASE_DATE}")
+    time.sleep(0.5)
+    print("=" * 40)
+    time.sleep(0.5)
+
+# Function to create a running cursor (80s-style effect)
+def running_cursor(text):
+    """
+    Prints the given text character by character with an 80s-style rotating cursor.
+    """
+    cursor = itertools.cycle(['|', '/', '-', '\\'])
+    for char in text:
+        sys.stdout.write(char)  # Print the next character of the text
+        sys.stdout.flush()  # Flush the output buffer to show the character immediately
+        time.sleep(0.05)  # Small delay between characters for typing effect
+        sys.stdout.write(next(cursor))  # Print the next cursor symbol
+        sys.stdout.flush()  # Flush the output buffer to show the cursor immediately
+        time.sleep(0.1)  # Small delay for the cursor effect
+        sys.stdout.write('\b')  # Backspace to overwrite with the next cursor symbol
+
+# Function to check if required modules are installed and up-to-date
+def check_components():
+    message = "🐻 BearWatch is checking its tools..."
+    running_cursor(message)  # Pass the message to the running cursor
+    
+    # List of required modules and their installation commands for apt
+    required_modules = {
+        "distro": None,  # Installed via pip, no specific version required
+        "psutil": "python3-psutil"  # Install via apt if missing
+    }
+
+    for module, apt_package in required_modules.items():
+        try:
+            # Dynamically import each module
+            mod = __import__(module)
+            time.sleep(0.5)
+            print(f"✅ {module} is present and ready.")
+        
+        except ImportError:
+            print(f"❌ {module} is missing. BearWatch cannot function without it.")
+            if apt_package:
+                install_prompt = input(f"Would you like BearWatch to install {module} using apt? (requires sudo) (Y/N): ")
+                if install_prompt.lower() == 'y':
+                    try:
+                        # Run sudo apt install for the missing package
+                        subprocess.check_call(['sudo', 'apt', 'install', '-y', apt_package])
+                        time.sleep(0.5)
+                        print(f"✅ {module} installed successfully via apt.")
+                    except Exception as e:
+                        print(f"❌ Failed to install {module}. Error: {e}")
+                else:
+                    print(f"⚠️ {module} was not installed. Some functionality may not work.")
+            else:
+                print(f"⚠️ {module} cannot be installed with apt and needs to be installed via pip.")
+        time.sleep(0.5)
+
+def input_with_timeout(prompt, timeout=15, default='y'):
+    """
+    Prompts the user for input with a timeout.
+    If no input is provided within the timeout, returns the default value.
+    
+    Args:
+        prompt (str): The input prompt to display.
+        timeout (int): Timeout in seconds before default is selected.
+        default (str): Default value to return if no input is provided.
+    
+    Returns:
+        str: User input or default if timeout expires.
+    """
+    print(prompt, flush=True)  # Display the prompt on its own line
+    
+    # Countdown timer display on a new line
+    for remaining in range(timeout, 0, -1):
+        sys.stdout.write(f"\rYou have {remaining} seconds to respond... ")  # Display countdown
+        sys.stdout.flush()
+        rlist, _, _ = select.select([sys.stdin], [], [], 1)  # Wait for 1 second
+        if rlist:
+            print()  # Move to the next line after input
+            return sys.stdin.readline().strip()  # User input detected
+    
+    # If no input is detected within the timeout period, use the default option
+    print(f"\n🐾 No input received within {timeout} seconds. Proceeding with the default option: {default}")
+    return default
+
+
+# Main BearWatch process
+if __name__ == "__main__":
+    # Print application info with delay
+    print_app_info()
+    
+    print("🐾 BearWatch is initializing...")
+    time.sleep(0.5)
+    
+    # Run component check with delays and cursor effect
+    check_components()
+
+    # Add OS detection back here using Horizon.py
+    os_info = detect_os()
+    print(f"Detected OS: {os_info['type']}")
+    if os_info.get('distro'):
+        print(f"Distribution: {os_info['distro']}")
+    
+    time.sleep(0.5)
+    
+    # Use Forager to get directories
+    print("🐻 BearWatch is identifying directories to scan...")
+    time.sleep(0.5)
+    
+    valid_mount_points = get_mount_points()
+    
+    if valid_mount_points:
+        # Use input_with_timeout to prompt the user for a directory scan choice with countdown
+        user_choice = input_with_timeout("🐻 Please select the directories you would like BearWatch to scan:\n"
+                                         "If unsure, choose the safe default option (Y) to scan common directories.\n"
+                                         "Would you like to use the safe default directories? (Y/N): ", timeout=15)
+        
+        if user_choice.lower() == 'y':
+            # Use safe defaults based on the detected distro
+            directories_to_scan = ['/home', '/etc', '/var']
+            print(f"Safe defaults selected based on detected distro: {directories_to_scan}")
+        else:
+            directories_to_scan = prompt_user_for_directories(valid_mount_points)
+        
+        if directories_to_scan:
+            print(f"BearWatch will scan the following directories: {directories_to_scan}")
+            time.sleep(0.5)
+            
+            # Use Sentinel to scan directories for permission issues
+            print("🐻 Sentinel is now prowling the den for risky permissions...")
+            all_risky_items = []
+            
+            for directory in directories_to_scan:
+                risky_items = scan_directory(directory)
+                all_risky_items.extend(risky_items)  # Append risky items to the list
+                display_risky_items(risky_items, directory)  # Pass both arguments
+            
+            # Summarize the overall risks and store in summary
+            summary = summarize_risks(all_risky_items)  # Store the summary dictionary
+            
+            # Generate the report using TrailMap
+            report_file = 'bearwatch_report.txt'  # Save to this file
+            generate_report(all_risky_items, summary, output_file=report_file)  # Pass the summary here
+            
+        else:
+            print("No directories selected for scanning.")
+    else:
+        print("No valid mount points found!")
+    
+    time.sleep(0.5)
+    # Continue with rest of the BearWatch process
+    print("🐻 BearWatch is on the lookout...")

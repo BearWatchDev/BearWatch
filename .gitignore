@@ -1,0 +1,9 @@
+# Ignore logs
+*.log
+
+# Ignore environment variable files
+.env
+
+# Ignore compiled files
+__pycache__/
+*.pyc
