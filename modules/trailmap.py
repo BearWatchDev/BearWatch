@@ -1,8 +1,7 @@
 import os
 import time
 from datetime import datetime
-
-REPORT_DIR = "reports"  # Default directory to store report files
+from settings_manager import user_settings
 
 def generate_report(risky_items, summary, output_file=None):
     """
@@ -11,7 +10,7 @@ def generate_report(risky_items, summary, output_file=None):
     Args:
         risky_items (list): List of risky files and directories.
         summary (dict): Summary of the risks (world-writable, SUID, SGID counts).
-        output_file (str): Optional file path to save the report. If None, defaults to REPORT_DIR.
+        output_file (str): Optional file path to save the report. If None, defaults to user-defined REPORT_DIR.
     """
     # Timestamp for the report (human-readable)
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -46,14 +45,13 @@ def generate_report(risky_items, summary, output_file=None):
     # Join all report lines into a single string
     report_content = "\n".join(report)
     
-    # Ensure the reports directory exists or output_file path directory exists
+    # Determine report directory from user settings or use the default if not specified
+    report_dir = user_settings['report_options']['output_location']
     if output_file is None:
-        # Use default REPORT_DIR if no output_file is specified
-        if not os.path.exists(REPORT_DIR):
-            os.makedirs(REPORT_DIR)
-        output_file = os.path.join(REPORT_DIR, f"bearwatch_report_{unix_timestamp}.txt")
+        if not os.path.exists(report_dir):
+            os.makedirs(report_dir)
+        output_file = os.path.join(report_dir, f"bearwatch_report_{unix_timestamp}.txt")
     else:
-        # Ensure the directory of output_file exists
         output_dir = os.path.dirname(output_file)
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -67,18 +65,18 @@ def generate_report(risky_items, summary, output_file=None):
         print(f"❌ Failed to save the report: {str(e)}")
     
     # Manage the number of reports (keep only the allowed max)
-    report_dir = os.path.dirname(output_file) if output_file else REPORT_DIR
     manage_reports(report_dir)
 
-def manage_reports(report_dir, max_reports=10):
+def manage_reports(report_dir):
     """
     Ensures only the most recent 'max_reports' are kept in the directory.
     Deletes the oldest reports if the count exceeds the limit.
     
     Args:
         report_dir (str): The directory where the reports are stored.
-        max_reports (int): The maximum number of reports to keep.
     """
+    max_reports = user_settings['report_options']['rollover_reports']
+
     # List all files in the report directory
     report_files = [os.path.join(report_dir, f) for f in os.listdir(report_dir) if os.path.isfile(os.path.join(report_dir, f))]
 
@@ -87,8 +85,10 @@ def manage_reports(report_dir, max_reports=10):
 
     # If the number of reports exceeds the max limit, delete the oldest ones
     if len(report_files) > max_reports:
-        # Delete the oldest files
         excess_reports = len(report_files) - max_reports
         for i in range(excess_reports):
-            os.remove(report_files[i])
-            print(f"🗑️ Old report {report_files[i]} has been deleted due to maximum log entries")
+            try:
+                os.remove(report_files[i])
+                print(f"🗑️ Old report {report_files[i]} has been deleted due to maximum log entries.")
+            except Exception as e:
+                print(f"❌ Failed to delete {report_files[i]}: {str(e)}")

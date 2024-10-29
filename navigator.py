@@ -1,7 +1,8 @@
+# navigator.py
 import json
 import os
+from settings_manager import user_settings, save_settings, set_rollover_reports, set_output_directory
 from utils import toggle_debug_logging
-from overseer import user_settings, save_settings
 
 # Configuration file path
 CONFIG_DIR = "config"
@@ -50,15 +51,15 @@ def save_config(config):
 def main_menu():
     config = load_config()
     while True:
-        print("\nBearWatch Main Menu >")
+        print("\nBearWatch Full Configuration Menu")
+        print("=================================")
         print("1. Scan Options")
         print("2. Report Options")
         print("3. Performance Metrics")
         print("4. General Options")
-        print("0. Exit")
+        print("0. Return to Main Menu")
         
         choice = input("Select an option: ")
-
         if choice == '1':
             scan_options(config)
         elif choice == '2':
@@ -69,7 +70,6 @@ def main_menu():
             general_options(config)
         elif choice == '0':
             save_config(config)
-            print("Exiting BearWatch. Configurations saved.")
             break
         else:
             print("Invalid option, please try again.")
@@ -117,6 +117,8 @@ def report_options(config):
             config["report_options"]["detail_level"] = input("Enter new detail level (summary/detailed/critical-only): ")
         elif choice == '2':
             config["report_options"]["rollover_reports"] = int(input("Enter number of rollover reports to keep: "))
+            save_config(config)  # Ensures the change is saved
+            print(f"Maximum number of rollover reports set to {config['report_options']['rollover_reports']}.")
         elif choice == '3':
             config["report_options"]["output_location"] = input("Enter new report output location: ")
         elif choice == '4':

@@ -12,7 +12,7 @@
     "report_options": {
         "detail_level": "summary",
         "rollover_reports": 30,
-        "output_location": "/home/reports"
+        "output_location": "reports"
     },
     "performance_metrics": {
         "enabled": true,
