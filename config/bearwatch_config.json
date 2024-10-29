@@ -1,0 +1,26 @@
+{
+    "scan_options": {
+        "default_directory": "/home",
+        "file_types": [
+            "*.conf",
+            "*.log"
+        ],
+        "depth_limit": 3,
+        "incremental_scan": true,
+        "use_cis_benchmarks": true
+    },
+    "report_options": {
+        "detail_level": "summary",
+        "rollover_reports": 30,
+        "output_location": "/home/reports"
+    },
+    "performance_metrics": {
+        "enabled": true,
+        "output_location": "/home/metrics"
+    },
+    "system_settings": {
+        "parallel_processing": true,
+        "memory_optimization": true,
+        "scan_timeout": 300
+    }
+}

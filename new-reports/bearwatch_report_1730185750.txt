@@ -1,0 +1,20 @@
+🐾 BearWatch Report
+Scan Time: 2024-10-29 09:09:10
+========================================
+World-writable files: 4
+SUID files: 0
+SGID files: 7
+========================================
+Detailed Risk Report:
+🛠️ Path: /etc/systemd/system-generators/systemd-gpt-auto-generator, Permissions: {'world_writable': True, 'suid': False, 'sgid': False}
+🛠️ Path: /var/local, Permissions: {'world_writable': False, 'suid': False, 'sgid': True}
+🛠️ Path: /var/tmp, Permissions: {'world_writable': True, 'suid': False, 'sgid': False}
+🛠️ Path: /var/lock, Permissions: {'world_writable': True, 'suid': False, 'sgid': False}
+🛠️ Path: /var/crash, Permissions: {'world_writable': True, 'suid': False, 'sgid': True}
+🛠️ Path: /var/mail, Permissions: {'world_writable': False, 'suid': False, 'sgid': True}
+🛠️ Path: /var/log/journal, Permissions: {'world_writable': False, 'suid': False, 'sgid': True}
+🛠️ Path: /var/log/journal/69c06f8044254883a8f073e75cdafdf4, Permissions: {'world_writable': False, 'suid': False, 'sgid': True}
+🛠️ Path: /var/spool/mail, Permissions: {'world_writable': False, 'suid': False, 'sgid': True}
+🛠️ Path: /var/lib/libuuid, Permissions: {'world_writable': False, 'suid': False, 'sgid': True}
+========================================
+Unix Timestamp: 1730185750

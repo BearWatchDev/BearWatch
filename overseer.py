@@ -5,36 +5,48 @@ import itertools
 import select
 import os
 import json
+import navigator
+import logging
 from modules.forager import get_mount_points, prompt_user_for_directories
 from modules.sentinel import scan_directory, display_risky_items, summarize_risks
 from modules.trailmap import generate_report  # Import TrailMap report generator
 from modules.horizon import detect_os  # Import Horizon for OS detection
 from config.settings import display_menu, user_settings
 from config.settings import DEFAULT_MAX_REPORTS, DEFAULT_OUTPUT_DIR, SETTINGS_FILE_PATH
+from utils import toggle_debug_logging
+
 
 # Application Info
 APP_NAME = "BearWatch"
 VERSION = "1.0.0"
 RELEASE_DATE = "20th October 2024"
 
+# Set up basic logging configuration
+logging.basicConfig(level=logging.INFO)  # Set to INFO or ERROR to suppress debug messages
+
 #Loads the user settings from the JSON file. If the file doesn't exist, it creates a new file with default values.
 def load_settings():
     default_settings = {
         "max_reports": DEFAULT_MAX_REPORTS,
-        "output_directory": DEFAULT_OUTPUT_DIR
+        "output_directory": DEFAULT_OUTPUT_DIR,
+        "logging_level": "INFO"  # Default to INFO if not previously set
     }
     
     if os.path.exists(SETTINGS_FILE_PATH):
         with open(SETTINGS_FILE_PATH, 'r') as settings_file:
             try:
-                return json.load(settings_file)
+                settings = json.load(settings_file)
+                # Merge loaded settings with defaults for any missing values
+                default_settings.update(settings)
             except json.JSONDecodeError:
                 print("Corrupted settings file. Using defaults.")
-                return default_settings
-    else:
-        print("Settings file not found. Creating a new one with default values.")
-        save_settings(default_settings)
-        return default_settings
+                save_settings(default_settings)
+    
+    # Set the logging level from the loaded settings
+    logging_level = default_settings.get('logging_level', 'INFO')
+    logging.getLogger().setLevel(logging_level)
+    
+    return default_settings
     
 # Saves the provided settings to the JSON file for persistence.
 def save_settings(settings):
@@ -74,7 +86,7 @@ def running_cursor(text, speed=0.001):
 # Get the max reports setting from settings
 max_reports = user_settings.get('max_reports', 10)
 # Debugging statement to verify loaded max_reports
-print(f"DEBUG: max_reports loaded from settings: {max_reports}")
+# print(f"DEBUG: max_reports loaded from settings: {max_reports}")
 
 # Helper function for using the cursor effect across the script.
 def print_with_cursor(text, speed=0.001):
@@ -140,76 +152,107 @@ def handle_report_rollover(max_reports):
     if not os.path.exists(report_dir):
         os.makedirs(report_dir)
 
-    # List only the reports that start with 'bearwatch_report' (filter out unrelated files)
     report_files = sorted(
         [f for f in os.listdir(report_dir) if f.startswith('bearwatch_report')],
         key=lambda x: os.path.getmtime(os.path.join(report_dir, x))
     )
 
-    # DEBUG: Print out all report files in the directory
-    print(f"DEBUG: All report files detected: {report_files}")
+    # Log the detected report files and their count
+    logging.debug(f"All report files detected: {report_files}")
+    logging.debug(f"Number of report files found: {len(report_files)}")
+    logging.debug(f"Max reports allowed: {max_reports}")
     
-    # DEBUG: Number of reports found and allowed
-    print(f"DEBUG: Number of report files found: {len(report_files)}")
-    print(f"DEBUG: Max reports allowed: {max_reports}")
-    
-    # If the number of reports exceeds the allowed maximum, delete the oldest files.
     if len(report_files) > max_reports:
-        print(f"DEBUG: Too many reports, deleting older files...")
-        # Calculate how many files to delete
+        logging.debug("Too many reports, deleting older files...")
         files_to_delete = len(report_files) - max_reports
-        print(f"DEBUG: Deleting {files_to_delete} files")
+        logging.debug(f"Deleting {files_to_delete} files")
         
         for old_report in report_files[:files_to_delete]:
             try:
                 os.remove(os.path.join(report_dir, old_report))
-                print(f"🗑️ Old report {old_report} has been deleted.")
+                logging.info(f"🗑️ Old report {old_report} has been deleted.")
             except Exception as e:
-                print(f"ERROR: Could not delete {old_report}. Reason: {e}")
+                logging.error(f"Could not delete {old_report}. Reason: {e}")
     else:
-        print(f"DEBUG: No reports deleted, within the limit.")
+        logging.debug("No reports deleted, within the limit.")
 
-    # DEBUG: Confirm the deletion logic is working.
     remaining_reports = sorted(
         [f for f in os.listdir(report_dir) if f.startswith('bearwatch_report')]
     )
-    print(f"DEBUG: Reports after deletion: {remaining_reports}")
-    print(f"DEBUG: Output directory in use: {report_dir}")
+    logging.debug(f"Reports after deletion: {remaining_reports}")
+    logging.debug(f"Output directory in use: {report_dir}")
 
-# Main BearWatch process.
 if __name__ == "__main__":
     # Print application info with delay
     print_app_info()
     
     print("🐾 BearWatch is initializing...")
-    
-    # Display settings menu.
+
+    # Load settings
+    user_settings = load_settings()
+
+    # Main loop for BearWatch settings menu
     while True:
-        menu_result = display_menu()
-        if menu_result == 'scan':
+        # Display the BearWatch settings options
+        print("🐻 BearWatch Settings Menu")
+        print("==============================")
+        print("1. Set maximum number of rollover reports")
+        print("2. Set default output directory")
+        print("3. Start scan")
+        print("4. Configure using the full menu")  # Option to call Navigator
+        print("5. Exit")
+        
+        menu_result = input("Please select an option (1-5): ")
+
+        # Handle the user's selection
+        if menu_result == '1':
+            # Logic for setting max rollover reports
+            print("Setting max number of rollover reports...")
+            # Add logic for setting max reports (update user_settings)
+        
+        elif menu_result == '2':
+            # Logic for setting default output directory
+            print("Setting default output directory...")
+            # Add logic for setting output directory
+        
+        elif menu_result == '3':
+            # Proceed to scanning
+            print("🐻 BearWatch is starting the scan process...")
             break  # Exit the menu and proceed to scanning
+        
+        elif menu_result == '4':
+            # Call the Navigator menu for more advanced settings
+            try:
+                config = navigator.main_menu()
+                print("Configuration updated based on full menu selections.")
+                
+                # Optionally save or apply the returned config here
+                # user_settings.update(config)  # Example of updating user settings with returned config
+                
+            except Exception as e:
+                print(f"Error in configuration: {e}")
+                continue  # Continue the loop even if Navigator encounters an issue
 
-    # Run component check with the cursor effect.
-    check_components()
-
-    # OS detection using Horizon.py
+        elif menu_result == '5':
+            print("Exiting BearWatch. Goodbye!")
+            exit(0)
+        
+        else:
+            print("Invalid option, please try again.")
+    
+    # Continue the BearWatch process after the user selects "Start scan"
     os_info = detect_os()
     print(f"Detected OS: {os_info['type']}")
     if os_info.get('distro'):
         print(f"Distribution: {os_info['distro']}")
 
-    time.sleep(0.3)
-    
-    # Get the dynamic safe defaults based on detected OS.
+    # Get safe default directories and continue scanning
     safe_default_dirs = get_safe_defaults(os_info)
-
-    # Use Forager to get directories.
     print_with_cursor("🐻 BearWatch is identifying directories to scan...", speed=0.001)
-    time.sleep(0.3)
-    
-    # Print the safe default directories before asking the user.
     print(f"Safe default directories based on detected OS: {safe_default_dirs}")
-
+    
+    # Print the safe default directories before asking the user
+    # print(f"Safe default directories based on detected OS: {safe_default_dirs}")
     
     valid_mount_points = get_mount_points()
     
@@ -260,7 +303,6 @@ if __name__ == "__main__":
             print_with_cursor("No directories selected for scanning.", speed=0.1)
     else:
         print_with_cursor("No valid mount points found!", speed=0.1)
-
 
     time.sleep(0.5)
     # Continue with rest of the BearWatch process.
