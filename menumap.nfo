@@ -1,0 +1,54 @@
+
+As of V. 1.0.1 
+
+BearWatch Main Menu
+======================
+1. Set maximum number of rollover reports  - [Functional]
+2. Set default output directory             - [Functional]
+3. Start scan                               - [Functional]
+4. Configure using the full menu            - [Functional]
+0. Exit                                     - [Functional]
+
+
+BearWatch Full Configuration Menu
+=================================
+1. Detail Level                             - [Functional]
+2. Number of Rollover Reports               - [Functional]
+3. Output Location                          - [Functional]
+4. Toggle Debug Logging                     - [Functional]
+0. Return to Main Menu                      - [Functional]
+
+
+Extended Options Menu (BearWatch Main Menu >)
+=============================================
+1. Scan Options                             - [Functional]
+2. Report Options                           - [Functional]
+3. Performance Metrics                      - **[Non-functional]**
+4. General Options                          - **[Non-functional]**
+0. Exit                                     - [Functional]
+
+
+Scan Options Menu
+=================
+1. Select Directories to Scan               - [Functional]
+2. Exclude Specific File Types              - **[Non-functional]**
+3. Set Scan Depth                           - **[Non-functional]**
+0. Return to Extended Options Menu          - [Functional]
+
+
+Report Options Menu
+===================
+1. Detail Level: summary                    - [Functional]
+2. Number of Rollover Reports: 30           - [Functional]
+3. Output Location: /home/reports           - [Functional]
+4. **Advanced Settings**                    - [Non-functional]
+5. **Audit Logs Management**                - [Non-functional]
+0. Return to Extended Options Menu          - [Functional]
+
+
+General Options Menu
+====================
+1. Change Display Theme                     - **[Non-functional]**
+2. Set Notification Preferences             - **[Non-functional]**
+3. Manage User Permissions                  - **[Non-functional]**
+0. Return to Extended Options Menu          - [Functional]

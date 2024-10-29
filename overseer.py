@@ -200,7 +200,7 @@ if __name__ == "__main__":
         print("2. Set default output directory")
         print("3. Start scan")
         print("4. Configure using the full menu")  # Option to call Navigator
-        print("5. Exit")
+        print("0. Exit")
         
         menu_result = input("Please select an option (1-5): ")
 
@@ -233,7 +233,7 @@ if __name__ == "__main__":
                 print(f"Error in configuration: {e}")
                 continue  # Continue the loop even if Navigator encounters an issue
 
-        elif menu_result == '5':
+        elif menu_result == '0':
             print("Exiting BearWatch. Goodbye!")
             exit(0)
         
