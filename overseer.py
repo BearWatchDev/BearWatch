@@ -18,8 +18,8 @@ from utils import toggle_debug_logging
 
 # Application Info
 APP_NAME = "BearWatch"
-VERSION = "1.0.0"
-RELEASE_DATE = "20th October 2024"
+VERSION = "1.0.1"
+RELEASE_DATE = "Initial release: 20th October 2024"
 
 # Set up basic logging configuration
 logging.basicConfig(level=logging.INFO)  # Set to INFO or ERROR to suppress debug messages
