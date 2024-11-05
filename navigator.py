@@ -1,7 +1,7 @@
 # navigator.py
 import json
 import os
-from settings_manager import user_settings, save_settings, set_rollover_reports, set_output_directory
+from settings_manager import user_settings, save_settings, set_rollover_reports, set_output_directory, reset_settings
 from utils import toggle_debug_logging
 
 # Configuration file path
@@ -47,7 +47,6 @@ def save_config(config):
     with open(CONFIG_FILE, 'w') as f:
         json.dump(config, f, indent=4)
 
-# Main menu
 def main_menu():
     config = load_config()
     while True:
@@ -57,9 +56,11 @@ def main_menu():
         print("2. Report Options")
         print("3. Performance Metrics")
         print("4. General Options")
+        print("5. Reset to Default Settings")
         print("0. Return to Main Menu")
         
         choice = input("Select an option: ")
+        
         if choice == '1':
             scan_options(config)
         elif choice == '2':
@@ -68,11 +69,20 @@ def main_menu():
             performance_options(config)
         elif choice == '4':
             general_options(config)
+        elif choice == '5':
+            # Confirmation before resetting
+            confirm_reset = input("Are you sure you want to reset all settings to defaults? (Y/N): ")
+            if confirm_reset.lower() == 'y':
+                reset_settings()
+                print("Settings have been reset to defaults.")
+            else:
+                print("Reset cancelled.")
         elif choice == '0':
-            save_config(config)
+            save_config(config)  # Save any changes made
             break
         else:
             print("Invalid option, please try again.")
+
 
 # Scan options menu
 def scan_options(config):
@@ -89,15 +99,37 @@ def scan_options(config):
 
         if choice == '1':
             config["scan_options"]["default_directory"] = input("Enter new default directory: ")
+
         elif choice == '2':
-            file_types = input("Enter file types (comma-separated, e.g., *.conf, *.log): ")
-            config["scan_options"]["file_types"] = file_types.split(',')
+            file_types_input = input("Enter file types (comma-separated, e.g., *.conf, *.log): ")
+            
+            # Split by comma, strip spaces, and validate each file type
+            file_types = [ftype.strip() for ftype in file_types_input.split(',')]
+            
+            # Filter only valid file types that start with "*."
+            valid_file_types = []
+            for ftype in file_types:
+                if ftype.startswith("*.") and len(ftype) > 2:
+                    valid_file_types.append(ftype)
+                else:
+                    print(f"Invalid file type format ignored: {ftype}")
+            
+            # Update settings with validated file types if any are valid
+            if valid_file_types:
+                config["scan_options"]["file_types"] = valid_file_types
+                print("File types updated:", valid_file_types)
+            else:
+                print("No valid file types entered. Please try again.")
+
         elif choice == '3':
             config["scan_options"]["depth_limit"] = int(input("Enter new depth limit: "))
+        
         elif choice == '4':
             config["scan_options"]["incremental_scan"] = input("Enable incremental scan (yes/no): ").lower() == "yes"
+        
         elif choice == '5':
             config["scan_options"]["use_cis_benchmarks"] = input("Use CIS Benchmarks (yes/no): ").lower() == "yes"
+        
         elif choice == '0':
             break
 

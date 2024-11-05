@@ -136,16 +136,28 @@ Sample Workflow
     View Reports: Reports will be saved in the configured output directory with a timestamped filename.
 
 7. Version History
+[1.0.3] - 2024-11-05
+- Improved directory scanning and report handling for better performance and user experience.
+- Enhanced settings management with streamlined loading and configuration reset functionality.
+- Refined debug control for cleaner output and logging based on user preferences.
+- Minor bug fixes and user interface optimizations to support smoother operation.
+
+[1.0.2] - 2024-10-29
+- Configurations now load dynamically before each scan.
+- Enhanced settings_manager.py to handle output locations and rollover settings.
+- Refined trailmap.py for report rollover using user-defined limits.
+- Modular improvements and bug fixes across overseer.py, navigator.py, and settings.
+
 [1.0.1] - 2024-10-29
 Added
-Debug logging toggle accessible via the full configuration menu.
+- Debug logging toggle accessible via the full configuration menu.
 
 [1.0.0] - 2024-10-20
 Initial Release
-    Core permissions scanning functionality.
-    Safe directory scanning defaults.
-    Report rollover management.
-    Basic user interface with options for setting reports and output directories.
+- Core permissions scanning functionality.
+- Safe directory scanning defaults.
+- Report rollover management.
+- Basic user interface with options for setting reports and output directories.
 
 8. Contributing
 
