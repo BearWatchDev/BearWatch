@@ -157,4 +157,4 @@ Contributions are welcome! Please follow these steps:
     Make your changes and test thoroughly.
     Submit a pull request with a detailed explanation of your changes.
 
-Questions? Contact us at: bearwatchdev@pm.me
+Questions? bearwatchdev@pm.me
