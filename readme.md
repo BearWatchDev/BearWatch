@@ -1,5 +1,5 @@
 BearWatch Documentation
->> Overview
+>> Overview <<
 
 BearWatch is a cross-platform file permissions auditing tool designed for system administrators and cybersecurity professionals. Its core function is to identify files and directories with insecure permissions, helping to mitigate risks associated with unauthorized access.
 
