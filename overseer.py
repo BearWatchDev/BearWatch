@@ -12,7 +12,6 @@ from modules.sentinel import scan_directory, display_risky_items, summarize_risk
 from modules.trailmap import generate_report
 from modules.horizon import detect_os
 from settings_manager import user_settings, load_settings, update_last_scan_time
-from scanner import scan_directory
 
 # Application Info.
 APP_NAME = "BearWatch"
@@ -20,8 +19,17 @@ VERSION = "1.0.3"
 RELEASE_DATE = "Initial release: 20th October 2024"
 
 # Set up logging based on `logging_level` from `user_settings`
-logging_level = getattr(logging, user_settings.get("logging_level", "INFO").upper())
-logging.basicConfig(level=logging_level)
+logging_level = logging.getLevelName(user_settings.get("logging_level", "ERROR").upper())
+logging.basicConfig(level=logging_level, force=True)  # Use force=True to override existing logging configuration
+
+# Optional: Add a custom filter if needed
+class PermissionWarningFilter(logging.Filter):
+    def filter(self, record):
+        # Suppress only permission denied warnings
+        return "Permission denied" not in record.getMessage()
+
+logger = logging.getLogger()
+logger.addFilter(PermissionWarningFilter())  # Apply the custom filter
 
 # Configuration file path (pointing to bearwatch_config.json).
 CONFIG_DIR = "config"
@@ -54,8 +62,6 @@ def running_cursor(text, speed=0.001):
     sys.stdout.flush()
     print()  # Move to a new line after the effect is done.
 
-# Get the max reports setting from settings.
-max_reports = user_settings.get('max_reports', 10)
 
 # Helper function for using the cursor effect across the script.
 def print_with_cursor(text, speed=0.001):
@@ -166,102 +172,149 @@ def start_scan():
     # Reload settings to apply any new configurations
     global user_settings
     user_settings = load_settings()
-    
+
     # Debug output to show last scan time before starting
     last_scan_time = user_settings['scan_options'].get('last_scan_time')
     if last_scan_time:
+        logging.debug(f"Last scan timestamp: {last_scan_time}")
         print(f">> Last scan was on: {time.ctime(last_scan_time)}")
     else:
+        logging.debug("No previous scan detected.")
         print("No previous scan detected.")
 
-    # Handle report rollover with updated settings.
+    # Handle report rollover with updated settings
     handle_report_rollover()
 
+    # Detect the OS and display relevant information
     os_info = detect_os()
     print(f"Detected OS: {os_info['type']}")
     if os_info.get('distro'):
         print(f"Distribution: {os_info['distro']}")
-    
+
     # Determine directories to scan
-    default_directory = user_settings['scan_options'].get('default_directory')
-    if default_directory and os.path.exists(default_directory):
-        # Prompt user to confirm if they want to use their custom directory or fallback to safe defaults.
-        use_default_directory = input_with_timeout(f"🐻 Would you like to scan your custom directory ({default_directory})? (Y/N): ", timeout=20)
-        
-        if use_default_directory.lower() == 'y':
-            # Use the custom default directory
-            directories_to_scan = [default_directory]
-            print(f"Using custom directory for scan: {default_directory}")
-        else:
-            # Use safe directories based on detected OS
-            directories_to_scan = get_safe_defaults(os_info)
-            print(f"Using safe default directories based on OS: {directories_to_scan}")
-    else:
-        # Fallback to prompt-based selection if no valid default directory is specified.
-        safe_default_dirs = get_safe_defaults(os_info)
-        print_with_cursor("🐻 BearWatch is identifying directories to scan...", speed=0.001)
-        print(f"Safe default directories based on detected OS: {safe_default_dirs}")
-        
-        valid_mount_points = get_mount_points()
-        
-        if valid_mount_points:
-            # Prompt the user for a directory scan choice with countdown.
-            user_choice = input_with_timeout("🐻 Please select the directories you would like BearWatch to scan:\n"
-                                             "If unsure, choose the safe default option (Y) to scan common directories.\n"
-                                             "Would you like to use the safe default directories? (Y/N): ", timeout=30)
-            
-            if user_choice.lower() == 'y':
-                directories_to_scan = safe_default_dirs
-                print(f"Safe defaults selected: {directories_to_scan}")
-            else:
-                directories_to_scan = prompt_user_for_directories(valid_mount_points)
+    directories_to_scan = determine_directories_to_scan(os_info)
     
-    # Proceed with scanning if directories are selected.
+    # Proceed with scanning if directories are selected
     if directories_to_scan:
+        logging.debug(f"Directories to scan: {directories_to_scan}")
         print(f"BearWatch will scan the following directories: {directories_to_scan}")
         time.sleep(0.3)
-        
-        # Sentinel scans directories for permission issues.
+
+        # Sentinel scans directories for permission issues
         print_with_cursor("🐻 Sentinel is now prowling the den for risky permissions...", speed=0.01)
-        all_risky_items = []
-        
-        for directory in directories_to_scan:
-            # Each directory scan includes depth, incremental scan, and CIS benchmark settings.
-            try:
-                risky_items = scan_directory(
-                    directory,
-                    max_depth=user_settings['scan_options']['depth_limit'],
-                    incremental_scan=user_settings['scan_options']['incremental_scan'],
-                    use_cis_benchmarks=user_settings['scan_options']['use_cis_benchmarks']
-                )
-                all_risky_items.extend(risky_items)
-                display_risky_items(risky_items, directory)
-            except PermissionError:
-                print(f"WARNING: Access denied to {directory}. Skipping this directory.")
-        
-        # Summarize the overall risks and store in summary.
-        summary = summarize_risks(all_risky_items)
-        
-        # Generate the report using TrailMap.
-        report_file = os.path.join(user_settings['report_options']['output_location'], f'bearwatch_report_{int(time.time())}.txt')
-        output_dir = user_settings['report_options']['output_location']
+        all_risky_items = perform_scan(directories_to_scan)
 
-        # Ensure the output directory exists.
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-
-        generate_report(all_risky_items, summary, output_file=report_file)
-        handle_report_rollover()
-        
-        # Update last scan timestamp after successful scan.
-        update_last_scan_time()
-        print(f">> Last scan time updated to: {time.ctime(user_settings['scan_options']['last_scan_time'])}")
-        
+        # Generate and save the report (summary is displayed in this function)
+        generate_and_save_report(all_risky_items)
     else:
+        logging.debug("No directories selected for scanning.")
         print_with_cursor("No directories selected for scanning.", speed=0.1)
 
     time.sleep(0.5)
     print_with_cursor("🐻 BearWatch is on the lookout...", speed=0.1)
+
+def determine_directories_to_scan(os_info):
+    default_directory = user_settings['scan_options'].get('default_directory')
+    default_scan_preference = user_settings['scan_options'].get('default_scan_preference', 'N')
+    directories_to_scan = []
+
+    # Check if the default directory is valid
+    if default_directory and os.path.exists(default_directory):
+        # Use the saved default preference if it exists
+        if default_scan_preference in ['y', 'n']:
+            use_default_directory = default_scan_preference
+        else:
+            # Otherwise, prompt the user with clearer instructions
+            use_default_directory = input_with_timeout(
+                f"🐻 Would you like to scan your custom directory ({default_directory})? "
+                "(Enter 'Y' for Yes, 'N' for No, or press Enter for the default: No): ", timeout=20
+            ).lower()
+
+        if use_default_directory == 'y':
+            directories_to_scan = [default_directory]
+            logging.debug(f"Using custom directory: {default_directory}")
+            print(f"Using custom directory for scan: {default_directory}")
+        else:
+            directories_to_scan = get_safe_defaults(os_info)
+            logging.debug(f"Using safe default directories: {directories_to_scan}")
+            print(f"Using safe default directories based on OS: {directories_to_scan}")
+    else:
+        # Fallback to prompt-based selection if no valid default directory is specified
+        safe_default_dirs = get_safe_defaults(os_info)
+        print_with_cursor("🐻 BearWatch is identifying directories to scan...", speed=0.001)
+        print(f"Safe default directories based on detected OS: {safe_default_dirs}")
+
+        valid_mount_points = get_mount_points()
+        if valid_mount_points:
+            user_choice = input_with_timeout(
+                "🐻 Please select the directories you would like BearWatch to scan:\n"
+                "If unsure, choose the safe default option (Y) to scan common directories.\n"
+                "Would you like to use the safe default directories? (Y/N): ", timeout=30
+            ).lower()
+            
+            if user_choice == 'y':
+                directories_to_scan = safe_default_dirs
+                logging.debug(f"Safe defaults selected: {directories_to_scan}")
+                print(f"Safe defaults selected: {directories_to_scan}")
+            else:
+                directories_to_scan = prompt_user_for_directories(valid_mount_points)
+                logging.debug(f"User-selected directories: {directories_to_scan}")
+
+    return directories_to_scan
+
+
+def perform_scan(directories_to_scan):
+    all_risky_items = []
+
+    for directory in directories_to_scan:
+        try:
+            # Perform the scan and get risky items
+            risky_items = scan_directory(directory)
+            logging.debug(f"DEBUG: Structure of risky_items from {directory}: {risky_items}")
+
+            # Validate the structure of `risky_items`
+            if isinstance(risky_items, list) and all(isinstance(item, tuple) and len(item) == 2 for item in risky_items):
+                all_risky_items.extend(risky_items)
+                display_risky_items(risky_items, directory)
+            else:
+                logging.error(f"Unexpected structure of risky_items from {directory}: {risky_items}")
+                continue
+        except PermissionError:
+            logging.warning(f"Access denied to {directory}. Skipping this directory.")
+        except Exception as e:
+            logging.error(f"Error scanning {directory}: {str(e)}")
+
+    return all_risky_items
+
+def generate_and_save_report(all_risky_items):
+    # Use the summarize_risks function from sentinel.py for consistent summary logic
+    summary = summarize_risks(all_risky_items)
+
+    # Define color codes
+    RED = "\033[91m"
+    YELLOW = "\033[93m"
+    RESET = "\033[0m"
+
+    # Display the summary with color coding
+    print(f"⚠️ {YELLOW}Summary of risks found in the bear's den:{RESET}")
+    print(f"  - World-writable files: {RED}{summary['world_writable']}{RESET}")
+    print(f"  - Files with SUID bit set: {RED}{summary['suid']}{RESET}")
+    print(f"  - Files with SGID bit set: {RED}{summary['sgid']}{RESET}")
+
+    # Save the report using TrailMap
+    output_dir = user_settings['report_options']['output_location']
+    report_file = os.path.join(output_dir, f'bearwatch_report_{int(time.time())}.txt')
+
+    # Ensure the output directory exists
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Generate the report using TrailMap
+    generate_report(all_risky_items, summary, output_file=report_file)
+
+    # Handle report rollover and update the last scan time
+    handle_report_rollover()
+    update_last_scan_time()
+
 
 if __name__ == "__main__":
     # Print application info with delay.

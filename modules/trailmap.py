@@ -8,7 +8,7 @@ def generate_report(risky_items, summary, output_file=None):
     Generates a report of the risky permissions found by BearWatch.
     
     Args:
-        risky_items (list): List of risky files and directories.
+        risky_items (list): List of tuples (path, permission_type).
         summary (dict): Summary of the risks (world-writable, SUID, SGID counts).
         output_file (str): Optional file path to save the report. If None, defaults to user-defined REPORT_DIR.
     """
@@ -33,8 +33,8 @@ def generate_report(risky_items, summary, output_file=None):
     # Add details about risky files
     if risky_items:
         report.append("Detailed Risk Report:")
-        for item in risky_items:
-            report.append(f"🛠️ Path: {item['path']}, Permissions: {item['permissions']}")
+        for path, permission_type in risky_items:
+            report.append(f"🛠️ Path: {path}, Permission Type: {permission_type}")
     else:
         report.append("No risky files or directories found.")
     

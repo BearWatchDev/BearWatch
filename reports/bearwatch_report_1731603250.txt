@@ -1,0 +1,22 @@
+🐾 BearWatch Report
+Scan Time: 2024-11-14 18:54:10
+========================================
+World-writable files: 4
+SUID files: 1
+SGID files: 7
+========================================
+Detailed Risk Report:
+🛠️ Path: /home/bearwatch/test_world_writable.txt, Permission Type: world_writable
+🛠️ Path: /home/bearwatch/test_suid_file, Permission Type: suid
+🛠️ Path: /home/bearwatch/test_sgid_file, Permission Type: sgid
+🛠️ Path: /var/local, Permission Type: sgid
+🛠️ Path: /var/tmp, Permission Type: world_writable
+🛠️ Path: /var/lock, Permission Type: world_writable
+🛠️ Path: /var/crash, Permission Type: world_writable
+🛠️ Path: /var/mail, Permission Type: sgid
+🛠️ Path: /var/log/journal, Permission Type: sgid
+🛠️ Path: /var/log/journal/69c06f8044254883a8f073e75cdafdf4, Permission Type: sgid
+🛠️ Path: /var/spool/mail, Permission Type: sgid
+🛠️ Path: /var/lib/libuuid, Permission Type: sgid
+========================================
+Unix Timestamp: 1731603250

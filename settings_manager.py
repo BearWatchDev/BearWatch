@@ -1,6 +1,6 @@
 import os
 import json
-import time  # For updating the scan timestamp
+import time
 import logging
 from config.settings import DEFAULT_MAX_REPORTS, DEFAULT_OUTPUT_DIR, SETTINGS_FILE_PATH
 
@@ -31,14 +31,15 @@ DEFAULT_SETTINGS = {
     }
 }
 
+# Load settings from the configuration file or use defaults
 def load_settings():
     settings = DEFAULT_SETTINGS.copy()
-    
+
     if os.path.exists(SETTINGS_FILE_PATH):
         with open(SETTINGS_FILE_PATH, 'r') as settings_file:
             try:
                 loaded_settings = json.load(settings_file)
-                
+
                 # Merge loaded settings with defaults
                 for key, value in DEFAULT_SETTINGS.items():
                     if key not in loaded_settings:
@@ -46,30 +47,32 @@ def load_settings():
                     elif isinstance(value, dict):
                         for sub_key, sub_value in value.items():
                             loaded_settings[key].setdefault(sub_key, sub_value)
+
                 settings = loaded_settings
-                
-                # Use logging.debug instead of print
                 logging.debug("Settings loaded and merged with defaults.")
             except json.JSONDecodeError:
                 logging.warning("Corrupted settings file. Using defaults.")
                 save_settings(DEFAULT_SETTINGS)
 
-    # Log final settings at debug level
     logging.debug("Final settings loaded: %s", settings)
     return settings
-
-
 
 # Initialize and expose `user_settings`
 user_settings = load_settings()
 
+# Save settings to the JSON file
 def save_settings(settings=user_settings):
     """
     Save provided settings to the JSON file.
     """
-    with open(SETTINGS_FILE_PATH, 'w') as settings_file:
-        json.dump(settings, settings_file, indent=4)
+    try:
+        with open(SETTINGS_FILE_PATH, 'w') as settings_file:
+            json.dump(settings, settings_file, indent=4)
+        logging.debug("Settings saved successfully: %s", settings)
+    except Exception as e:
+        logging.error(f"Failed to save settings: {e}")
 
+# Update the last scan time in `scan_options`
 def update_last_scan_time():
     """
     Updates the last_scan_time in scan_options with the current time.
@@ -77,23 +80,40 @@ def update_last_scan_time():
     user_settings['scan_options']['last_scan_time'] = time.time()  # Store as Unix timestamp
     save_settings(user_settings)
 
-# Helper function to update rollover reports in `report_options`
+# Functions to update specific settings and ensure they are saved
 def set_rollover_reports():
+    """
+    Prompt the user to set the maximum number of rollover reports and save.
+    """
     max_reports = int(input("Enter the maximum number of rollover reports: "))
     user_settings['report_options']['rollover_reports'] = max_reports
     save_settings()
+    logging.debug(f"Rollover reports updated to: {max_reports} and saved.")
 
-# Helper function to update the report output directory in `report_options`
 def set_output_directory():
+    """
+    Prompt the user to set the output directory for reports and save.
+    """
     output_dir = input("Enter the output directory for reports: ")
     if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+        os.makedirs(output_dir, exist_ok=True)
     user_settings['report_options']['output_location'] = output_dir
     save_settings()
+    logging.debug(f"Output directory updated to: {output_dir} and saved.")
+
+def toggle_debug_logging():
+    """
+    Toggle the debug logging setting and save.
+    """
+    current_level = user_settings.get("logging_level", "INFO").upper()
+    new_level = "DEBUG" if current_level == "INFO" else "INFO"
+    user_settings["logging_level"] = new_level
+    save_settings()
+    logging.debug(f"Debug logging toggled to: {new_level} and saved.")
 
 def reset_settings():
     """
     Reset configuration to default settings.
     """
-    save_settings(DEFAULT_SETTINGS)  # Overwrite the settings file with defaults
+    save_settings(DEFAULT_SETTINGS)
     print("Configuration has been reset to default settings.")

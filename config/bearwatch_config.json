@@ -8,12 +8,12 @@
         "depth_limit": 3,
         "incremental_scan": true,
         "use_cis_benchmarks": false,
-        "last_scan_time": 1730821417.167986
+        "last_scan_time": 1731607919.4669929
     },
     "report_options": {
         "detail_level": "summary",
-        "rollover_reports": 30,
-        "output_location": "/home/bearwatch/bearwatch_test"
+        "rollover_reports": 2,
+        "output_location": "/home/bearwatch/bearwatch/reports"
     },
     "performance_metrics": {
         "enabled": true,
@@ -24,5 +24,5 @@
         "memory_optimization": true,
         "scan_timeout": 300
     },
-    "logging_level": "DEBUG"
+    "logging_level": "INFO"
 }
