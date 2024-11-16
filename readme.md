@@ -16,7 +16,7 @@ BearWatch is ideal for security auditing on Linux systems and WSL environments, 
 1. Installation
 Clone the Repository:
 
-git clone <repository_url>
+git clone https://github.com/BearWatchDev/BearWatch
 cd bearwatch
 
 Install Dependencies:
